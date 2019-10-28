@@ -1,0 +1,21 @@
+service:
+  name: api-gateway-vpc-caller
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  region: ${opt.region}
+  stage: ${opt:stage}
+  stackTags:
+    STACK_STAGE: api-gateway-vpc-caller-${self:provider.stage}
+
+functions:
+  caller:
+    timeout: 180
+    handler: caller.main
+    vpc:
+      securityGroupIds:
+        - !ImportValue ${self:provider.stage}-internal-api-sg
+      subnetIds:
+        - !ImportValue ${self:provider.stage}-internal-api-subnet-1
+        - !ImportValue ${self:provider.stage}-internal-api-subnet-2

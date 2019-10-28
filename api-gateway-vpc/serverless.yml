@@ -1,0 +1,139 @@
+service:
+  name: api-gateway-vpc
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  region: ${opt.region}
+  stage: ${opt:stage}
+  stackTags:
+    STACK_STAGE: api-gateway-vpc-${self:provider.stage}
+  resourcePolicy:
+    - Effect: Deny
+      Principal: '*'
+      Action: 'execute-api:Invoke'
+      Resource: 'execute-api:/*/*/*'
+      Condition:
+        StringNotEquals:
+          aws:sourceVpc:
+            - !Ref vpc
+    - Effect: Allow
+      Principal: '*'
+      Action: 'execute-api:Invoke'
+      Resource: 'execute-api:/*/*/*'
+
+functions:
+  main:
+    timeout: 5
+    handler: handler.main
+    vpc:
+      securityGroupIds:
+        - !GetAtt vpc.DefaultSecurityGroup
+      subnetIds:
+        - !Ref subnet1
+        - !Ref subnet2
+    events:
+      - http:
+          method: get
+          path: ''
+          private: true
+
+resources:
+  Outputs:
+    vpc:
+      Value: !Ref vpc
+      Export:
+        Name: ${self:provider.stage}-internal-api-vpc
+    sg:
+      Value: !GetAtt vpc.DefaultSecurityGroup
+      Export:
+        Name: ${self:provider.stage}-internal-api-sg
+    subnet1:
+      Value: !Ref subnet1
+      Export:
+        Name: ${self:provider.stage}-internal-api-subnet-1
+    subnet2:
+      Value: !Ref subnet2
+      Export:
+        Name: ${self:provider.stage}-internal-api-subnet-2
+
+  Resources:
+    vpc:
+      Type: AWS::EC2::VPC
+      Properties:
+        CidrBlock: 10.0.0.0/16
+        EnableDnsSupport: true
+        EnableDnsHostnames: true
+
+    subnet1:
+      Type: AWS::EC2::Subnet
+      Properties:
+        AvailabilityZone: ${self:provider.region}a
+        CidrBlock: 10.0.110.0/24
+        VpcId: !Ref vpc
+
+    subnet2:
+      Type: AWS::EC2::Subnet
+      Properties:
+        AvailabilityZone: ${self:provider.region}b
+        CidrBlock: 10.0.112.0/24
+        VpcId: !Ref vpc
+
+    sg:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupName: ${self:provider.stage}-vpc-api-gateway-sg
+        GroupDescription: API Gateway and Lambda in a VPC ${self:provider.stage}
+        VpcId: !Ref vpc
+
+    hostedZone:
+      Type: AWS::Route53::HostedZone
+      Properties:
+        Name: internal.codespyre.com
+        VPCs:
+          - VPCId: !Ref vpc
+            VPCRegion: ${self:provider.region}
+
+    recordSet:
+      Type: AWS::Route53::RecordSet
+      Properties:
+        Type: A
+        Name: internal.codespyre.com
+        HostedZoneId: !Ref hostedZone
+        AliasTarget:
+          DNSName: { Fn::Select: [1, { Fn::Split: [ ":", { Fn::Select: [2, { Fn::GetAtt: [ vpcApiGatewayEndpoint, DnsEntries ] } ] }] }] }
+          HostedZoneId: { Fn::Select: [0, { Fn::Split: [ ":", { Fn::Select: [2, { Fn::GetAtt: [ vpcApiGatewayEndpoint, DnsEntries ] } ] }] }] }
+
+    apiCustomDomain:
+      Type: AWS::ApiGateway::DomainName
+      Properties:
+        RegionalCertificateArn: ${env:CERTIFICATE_ARN}
+        DomainName: internal.codespyre.com
+        EndpointConfiguration:
+          Types:
+            - REGIONAL
+
+    apiCustomDomainPathMapping:
+      Type: AWS::ApiGateway::BasePathMapping
+      Properties:
+        BasePath: 'handler'
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        DomainName: internal.codespyre.com
+        Stage: ${self:provider.stage}
+      DependsOn:
+        - apiCustomDomain
+
+    vpcApiGatewayEndpoint:
+      Type: AWS::EC2::VPCEndpoint
+      Properties:
+        PrivateDnsEnabled: true
+        ServiceName: com.amazonaws.${self:provider.region}.execute-api
+        SubnetIds:
+          - !Ref subnet1
+          - !Ref subnet2
+        SecurityGroupIds:
+          - !GetAtt vpc.DefaultSecurityGroup
+        VpcEndpointType: Interface
+        VpcId: !Ref vpc
+

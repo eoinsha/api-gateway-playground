@@ -1,0 +1,12 @@
+{
+  "name": "api-gateway-vpc",
+  "version": "1.0.0",
+  "description": "API Gateway Example in a VPC",
+  "scripts": {
+    "test": "No tests"
+  },
+  "devDependencies": {
+  },
+  "author": "Eoin Shanaghy <eoin.shanaghy@fourtheorem.com>",
+  "license": "MIT"
+}
