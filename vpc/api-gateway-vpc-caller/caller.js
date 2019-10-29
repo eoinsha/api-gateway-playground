@@ -1,9 +1,6 @@
 'use strict';
 
-const AWS = require('aws-sdk');
 const axios = require('axios');
-
-const ssm = new AWS.SSM();
 
 async function main(event, context) {
   console.log({event, context}, 'Caller invoked');

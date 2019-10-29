@@ -1,16 +1,17 @@
 {
-  "name": "api-gateway-vpc",
+  "name": "internal-api-caller",
   "version": "1.0.0",
-  "description": "API Gateway Example in a VPC",
+  "description": "Lambda calling an 'internal' (AWS_IAM) protected API Gateway",
   "scripts": {
     "test": "No tests"
   },
   "devDependencies": {
+    "aws-sdk": "^2.556.0",
     "serverless-pseudo-parameters": "^2.5.0"
   },
   "author": "Eoin Shanaghy <eoin.shanaghy@fourtheorem.com>",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.19.0"
+    "aws-signed-axios": "^1.0.6"
   }
 }

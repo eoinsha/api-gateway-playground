@@ -1,0 +1,38 @@
+service:
+  name: internal-api
+
+provider:
+  name: aws
+  logs:
+    restApi: true
+  endpointType: REGIONAL
+  runtime: nodejs10.x
+  region: ${opt.region}
+  stage: ${opt:stage}
+  stackTags:
+    STACK_STAGE: api-gateway-vpc-${self:provider.stage}
+
+functions:
+  main:
+    timeout: 5
+    handler: handler.main
+    events:
+      - http:
+          method: get
+          path: ''
+          cors: false
+          authorizer: aws_iam
+
+resources:
+  Resources:
+    internalApiUrlParameter:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /${self:provider.stage}/internal-api/url
+        Type: String
+        Value:
+          Fn::Join:
+            - ''
+            - - 'https://'
+              - !Ref ApiGatewayRestApi
+              - '.execute-api.${self:provider.region}.amazonaws.com/${self:provider.stage}/'

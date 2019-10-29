@@ -1,0 +1,11 @@
+{
+  "name": "internal-api",
+  "version": "1.0.0",
+  "description": "API Gateway with AWS_IAM authorizer",
+  "scripts": {
+    "test": "No tests"
+  },
+  "devDependencies": {},
+  "author": "Eoin Shanaghy <eoin.shanaghy@fourtheorem.com>",
+  "license": "MIT"
+}

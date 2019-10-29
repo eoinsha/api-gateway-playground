@@ -1,0 +1,30 @@
+service:
+  name: internal-api-caller
+
+plugins:
+  - serverless-pseudo-parameters
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  region: ${opt.region}
+  stage: ${opt:stage}
+  environment:
+    STAGE: ${self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - arn:aws:ssm:#{AWS::Region}:#{AWS::AccountId}:parameter/${self:provider.stage}/internal-api/url
+    - Effect: Allow
+      Action:
+        - execute-api:Invoke
+        - execute-api:GET
+      Resource:
+        - arn:aws:execute-api:#{AWS::Region}:#{AWS::AccountId}:*/${self:provider.stage}/GET/*
+
+functions:
+  caller:
+    timeout: 5
+    handler: caller.main
