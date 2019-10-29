@@ -5,7 +5,10 @@
   "scripts": {
     "test": "No tests"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "aws-sdk": "^2.556.0",
+    "serverless-pseudo-parameters": "^2.5.0"
+  },
   "author": "Eoin Shanaghy <eoin.shanaghy@fourtheorem.com>",
   "license": "MIT",
   "dependencies": {

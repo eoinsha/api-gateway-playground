@@ -3,6 +3,9 @@ service:
 
 provider:
   name: aws
+  logs:
+    restApi: true
+  endpointType: PRIVATE
   runtime: nodejs10.x
   region: ${opt.region}
   stage: ${opt:stage}
@@ -36,7 +39,6 @@ functions:
       - http:
           method: get
           path: ''
-          private: true
 
 resources:
   Outputs:
@@ -86,44 +88,6 @@ resources:
         GroupDescription: API Gateway and Lambda in a VPC ${self:provider.stage}
         VpcId: !Ref vpc
 
-    hostedZone:
-      Type: AWS::Route53::HostedZone
-      Properties:
-        Name: internal.codespyre.com
-        VPCs:
-          - VPCId: !Ref vpc
-            VPCRegion: ${self:provider.region}
-
-    recordSet:
-      Type: AWS::Route53::RecordSet
-      Properties:
-        Type: A
-        Name: internal.codespyre.com
-        HostedZoneId: !Ref hostedZone
-        AliasTarget:
-          DNSName: { Fn::Select: [1, { Fn::Split: [ ":", { Fn::Select: [2, { Fn::GetAtt: [ vpcApiGatewayEndpoint, DnsEntries ] } ] }] }] }
-          HostedZoneId: { Fn::Select: [0, { Fn::Split: [ ":", { Fn::Select: [2, { Fn::GetAtt: [ vpcApiGatewayEndpoint, DnsEntries ] } ] }] }] }
-
-    apiCustomDomain:
-      Type: AWS::ApiGateway::DomainName
-      Properties:
-        RegionalCertificateArn: ${env:CERTIFICATE_ARN}
-        DomainName: internal.codespyre.com
-        EndpointConfiguration:
-          Types:
-            - REGIONAL
-
-    apiCustomDomainPathMapping:
-      Type: AWS::ApiGateway::BasePathMapping
-      Properties:
-        BasePath: 'handler'
-        RestApiId:
-          Ref: ApiGatewayRestApi
-        DomainName: internal.codespyre.com
-        Stage: ${self:provider.stage}
-      DependsOn:
-        - apiCustomDomain
-
     vpcApiGatewayEndpoint:
       Type: AWS::EC2::VPCEndpoint
       Properties:
@@ -137,3 +101,25 @@ resources:
         VpcEndpointType: Interface
         VpcId: !Ref vpc
 
+    internalApiUrlParameter:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /${self:provider.stage}/internal-api/vpce-url
+        Type: String
+        Value:
+          Fn::Join:
+            - ''
+            - - 'https://'
+              - { Fn::Select: [1, { Fn::Split: [ ":", { Fn::Select: [2, { Fn::GetAtt: [ vpcApiGatewayEndpoint, DnsEntries ] } ] }] }] }
+              - '/${self:provider.stage}/'
+
+    internalApiDomainParameter:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /${self:provider.stage}/internal-api/api-domain
+        Type: String
+        Value:
+          Fn::Join:
+            - ''
+            - - !Ref ApiGatewayRestApi
+              - '.execute-api.${self:provider.region}.amazonaws.com'

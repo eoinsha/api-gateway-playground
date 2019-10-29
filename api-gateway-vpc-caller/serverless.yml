@@ -1,6 +1,9 @@
 service:
   name: api-gateway-vpc-caller
 
+plugins:
+  - serverless-pseudo-parameters
+
 provider:
   name: aws
   runtime: nodejs10.x
@@ -13,6 +16,9 @@ functions:
   caller:
     timeout: 180
     handler: caller.main
+    environment:
+      VPCE_URL: ${ssm:/${self:provider.stage}/internal-api/vpce-url}
+      API_DOMAIN : ${ssm:/${self:provider.stage}/internal-api/api-domain}
     vpc:
       securityGroupIds:
         - !ImportValue ${self:provider.stage}-internal-api-sg
