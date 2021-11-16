@@ -6,7 +6,7 @@
     "test": "No tests"
   },
   "devDependencies": {
-    "aws-sdk": "^2.556.0",
+    "aws-sdk": "^2.814.0",
     "serverless-pseudo-parameters": "^2.5.0"
   },
   "author": "Eoin Shanaghy <eoin.shanaghy@fourtheorem.com>",
